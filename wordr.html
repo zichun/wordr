@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <script src="wordlist.js"></script>
+    <script>
+      let word_buckets = {};
+      for (let i = 0; i < WORD_LIST.length; ++i) {
+          const word = WORD_LIST[i];
+          if (typeof word_buckets[word.length] === 'undefined') {
+              word_buckets[word.length] = [];
+          }
+          word_buckets[word.length].push(word);
+      }
+
+      for (a in word_buckets) {
+          console.log(a);
+      }
+      alert(WORD_LIST.length);
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
+
+
