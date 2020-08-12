@@ -1,5 +1,5 @@
 let Wordr = {};
-
+let DEBUG = false;
 Wordr.Solver = function(config) {
 
     function parse(wordList) {
@@ -31,10 +31,11 @@ Wordr.Solver.prototype.add_word = function(wordType, template) {
         throw 'Invalid word type';
     }
 
-    function add_word_mixin(wordType, min_length, max_length) {
+    function add_word_mixin(wordType, min_length, max_length, word_count) {
         wordType.get_type = () => wordType.type;
         wordType.min_length = () => min_length;
         wordType.max_length = () => max_length;
+        wordType.word_count = () => word_count;
 
         return wordType;
     }
@@ -42,7 +43,7 @@ Wordr.Solver.prototype.add_word = function(wordType, template) {
     switch (wordType.type) {
 
     case Wordr.WordTypes.FixedLengthWord:
-        this.words.push(add_word_mixin(wordType, wordType.len, wordType.len));
+        this.words.push(add_word_mixin(wordType, wordType.len, wordType.len, 1));
         break;
 
     default:
@@ -58,10 +59,25 @@ Wordr.Solver.prototype.add_relation = function(relationship) {
 
     const self = this;
 
+    function add_relationship_mixin(relationship) {
+        relationship.get_type = () => relationship.type;
+        relationship.get_other = (index) => {
+            for (let i = 0; i < relationship.word_indices.length; ++i) {
+                if (relationship.word_indices[i] !== index) {
+                    return relationship.word_indices[i];
+                }
+            }
+            return relationship.word_indices[0];
+        };
+
+        return relationship;
+    }
+
     function add_word_relationship(words, relationship)
     {
         const ind = self.relationships.length;
-        self.relationships.push(relationship);
+        relationship.word_indices = words;
+        self.relationships.push(add_relationship_mixin(relationship));
 
         for (let i = 0; i < words.length; ++i) {
             if (typeof self.word_relationship[words[i]] === 'undefined') {
@@ -93,68 +109,104 @@ Wordr.Solver.prototype.solve = function(patterns) {
     let solutions = [];
     let candidates = [];
     let templates = [];
+    let visited = [];
 
     for (let i = 0; i < this.words.length; ++i) {
-        constraints.push([]);
         candidates.push([]);
-        templates.push([]);
-
-        for (let j = 0; j < this.words[i].max_length(); ++j) {
-            templates[i].push(null);
-        }
+        visited.push(false);
+        constraints.push(
+            new Wordr.Constraint(this.words[i].min_length(),
+                                 this.words[i].max_length()));
     }
+
+    //
+    // Add given patterns, which are expressed as constraint modifiers, as constraints.
+    //
     for (let i = 0; i < this.words.length; ++i) {
         if (patterns[i]) {
-            constraints[i].push(...patterns[i]);
-
             for (let j = 0; j < patterns[i].length; ++j) {
-                if (!patterns[i][j].augment_template(templates[i])) {
-                    assert(false, 'Pattern causes contradiction');
-                }
+                patterns[i][j](constraints[i]);
             }
         }
     }
 
-    let recur = (word_index) => {
+    let recur = (word_index, visit_next) => {
         const word_base = this.words[word_index];
 
-        let is_candidate_viable = (str) => {
-            for (let i = 0; i < constraints[word_index].length; ++i) {
-                if (!constraints[word_index][i].validate(str)) {
-                    return false;
-                }
-            }
-            return true;
-        };
+        let viable = false;
+        visited[word_index] = true;
 
-        // todo: if constraints fully form a word, that should be the only candidate
-
-        let first_blank = word_base.max_length();
-        for (let i = 0; i < templates[word_index].length; ++i) {
-            if (templates[word_index][i] === null) {
-                first_blank = i;
-                break;
-            }
+        if (!visit_next) {
+            visit_next = [];
         }
-
-        if (first_blank > word_base.min_length()) {
-            process_candidate_word(word_base.join(''));
-        }
+        // TODO: possible optimization when constraint has a fully formed word
 
         outerloop:
-        for (let i = first_blank; i <= word_base.max_length(); ++i) {
+        for (let i = word_base.min_length(); i <= word_base.max_length(); ++i) {
             for (let j = 0; j < corpus[i].length; ++j) {
                 const candidate = corpus[i][j];
-                if (satisfied(candidate)) {
+                let constraint_satisfied = true;
 
-                    candidates[word_index].push(candidate);
+                if (constraints[word_index].satisfied(candidate)) {
 
+                    constraints[word_index].set_word(candidate);
+
+                    let index_constraint_added = [];
+
+                    add_relationship_loop:
+                    for (let r = 0; r < this.word_relationship[word_index].length; ++r) {
+                        const relationship = this.relationships[this.word_relationship[word_index][r]];
+                        const other_word_index = relationship.get_other(word_index);
+
+                        switch (relationship.get_type()) {
+                        case Wordr.RelationTypes.EqualChar:
+                            let this_pos = relationship.pos_0;
+                            let that_pos = relationship.pos_1;
+
+                            if (relationship.word_0 !== word_index) {
+                                this_pos = relationship.pos_1;
+                                that_pos = relationship.pos_0;
+                            }
+
+                            if (!constraints[other_word_index].add_index_constraint(that_pos, candidate[this_pos])) {
+
+                                constraint_satisfied = false;
+                                break add_relationship_loop;
+                            } else {
+                                index_constraint_added.push([other_word_index, that_pos]);
+
+                                if (constraints[other_word_index].has_set_word === false && visit_next.indexOf(other_word_index) < 0) {
+                                    visit_next.push(other_word_index);
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+
+                    if (constraint_satisfied) {
+                        if (visit_next.length === 0 ||
+                            (recur(visit_next.pop(), visit_next)))
+                        {
+                            candidates[word_index].push(candidate);
+                            viable = true;
+                        }
+                    }
+
+                    for (let c = 0; c < index_constraint_added.length; ++c) {
+                        constraints[index_constraint_added[c][0]].remove_index_constraint(index_constraint_added[c][1]);
+                    }
+
+                    constraints[word_index].unset_word(candidate);
                 }
-                if (candidates > this.config.maxCandidatesPerWord) {
+
+                if (viable && candidates[word_index].length > this.config.maxCandidatesPerWord) {
                     break outerloop;
                 }
             }
         }
+
+        return viable;
 
     };
 
@@ -203,26 +255,127 @@ Wordr.RelationTypes = {
     }
 };
 
-Wordr.Constraints = {
-    SingleCharConstraint: (index, character) => {
-        assert(index >= 0);
-        return {
-            'augment_template': (template) => {
-                if (!template[index]) {
-                    template[index] = character;
-                }
-                return template[index] === character;
-            },
-            'validate': (str) => {
-                return str.length > index && str[index] === character;
-            }
+Wordr.Constraint = function(min_length, max_length) {
+    assert(min_length <= max_length, "Constraint's max_length smaller than min_length");
+    assert(min_length >= 1, "Constraint's min_length has to be at least 1");
+
+    this.base_min_length = this.min_length = min_length;
+    this.base_max_length = this.max_length = max_length;
+
+    this.known_characters = 0;
+    this.first_unknown_index = 0;
+
+    this.has_set_word = false;
+
+    this.template = [];
+    for (let i = 0; i < this.max_length; ++i) {
+        this.template.push({
+            'char': '',
+            'count': 0
+        });
+    }
+};
+
+Wordr.Constraint.prototype.set_word = function(word) {
+    //
+    // Set current word as the base word. The current implementation
+    // enumerates the entire word and adds each character as index constraints.
+    // It's possible to go with a more efficient implementation instead of re-using
+    // existing construct, but that is left as a possible optimization in the future.
+    //
+
+    assert(this.has_set_word === false, "Cannot call set_word when constraint already has another word set");
+    this.has_set_word = word;
+    this.min_length = this.max_length = word.length;
+
+    for (let i = 0; i < word.length; ++i) {
+        this.add_index_constraint(i, word[i]);
+    }
+};
+
+Wordr.Constraint.prototype.unset_word = function() {
+    assert(this.has_set_word !== false, "Cannot call unset_word when constraint hasn't set word");
+
+    for (let i = 0; i < this.has_set_word.length; ++i) {
+        this.remove_index_constraint(i);
+    }
+
+    this.has_set_word = false;
+    this.min_length = this.base_min_length;
+    this.max_length = this.base_max_length;
+};
+
+Wordr.Constraint.prototype.add_index_constraint = function(index, char) {
+    //
+    // Adds an index constraint, which specifies that the character at the given index
+    // of the word must match the given character. Returns true if constraint can be added
+    // and false if constraint contradicts with previous constraints.
+    //
+    if (index < 0 || index >= this.max_length) {
+        return false;
+    }
+
+    if (this.template[index].count > 0) {
+        if (this.template[index].char !== char) {
+            return false;
+        }
+    } else {
+        this.known_characters += 1;
+        while (this.template[this.first_unknown_index].count > 0) {
+            this.first_unknown_index++;
+        }
+    }
+
+    this.template[index].char = char;
+    this.template[index].count += 1;
+
+    return true;
+};
+
+Wordr.Constraint.prototype.remove_index_constraint = function(index) {
+    assert(index >= 0 && index < this.max_length);
+    assert(this.template[index].count > 0);
+
+    this.template[index].count -= 1;
+
+    if (this.template[index].count === 0) {
+        this.template[index].char = '';
+        this.known_characters -= 1;
+        if (index < this.first_unknown_index) {
+            this.first_unknown_index = index;
+        }
+    }
+};
+
+Wordr.Constraint.prototype.satisfied = function(candidate) {
+    //
+    // Validates if the given candidate string fulfills all constraints.
+    //
+    if (candidate.length < this.min_length || candidate.length > this.max_length) {
+        return false;
+    }
+
+    for (let i = 0; i < candidate.length; ++i) {
+        if (this.template[i].count > 0 && this.template[i].char != candidate[i]) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+Wordr.ConstraintModifiers = {
+    SingleCharConstraintModifier: (index, character) => {
+        assert(index >= 0, "SingleCharConstraint has to have a non-negative index");
+        return (constraint) => {
+            assert(constraint.add_index_constraint(index, character), "Pattern contradiction, failed to add index constraint");
         };
     }
 };
 
 Wordr.make_pattern = function(pattern) {
     //
-    // Takes in a string pattern and returns an array of constraints.
+    // Takes in a string pattern and returns an array of constraint modifiers.
     // String pattern currently only supports ? as single-character wildcard
     // but should eventually support * (multi-characters wildcard).
     //
@@ -233,7 +386,7 @@ Wordr.make_pattern = function(pattern) {
             const asc = pattern.charCodeAt(i);
             assert(asc >= 97 && asc <= 122, 'Invalid character in pattern');
 
-            tr.push(Wordr.Constraints.SingleCharConstraint(i, pattern[i]));
+            tr.push(Wordr.ConstraintModifiers.SingleCharConstraintModifier(i, pattern[i]));
         }
     }
     return tr;

@@ -20,5 +20,8 @@ solver.add_relation(Wordr.RelationTypes.EqualChar(0, 1, 1, 1));
 
 
 let solutions = solver.solve([
-    Wordr.make_pattern('?erring')
+    Wordr.make_pattern('h???in?'),
+    Wordr.make_pattern('???'),
+    Wordr.make_pattern('l????d'),
+    Wordr.make_pattern('p?????')
 ]);
