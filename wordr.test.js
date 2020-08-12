@@ -25,3 +25,5 @@ let solutions = solver.solve([
     Wordr.make_pattern('l????d'),
     Wordr.make_pattern('p?????')
 ]);
+
+console.log(solutions);

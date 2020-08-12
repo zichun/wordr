@@ -210,8 +210,11 @@ Wordr.Solver.prototype.solve = function(patterns) {
 
     };
 
-    recur(0);
-    console.log(candidates);
+    for (let i = 0; i < this.words.length; ++i) {
+        if (!visited[i]) {
+            recur(i);
+        }
+    }
 
     return solutions;
 };
