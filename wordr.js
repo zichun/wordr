@@ -152,6 +152,10 @@ Wordr.Solver.prototype.solve = function(patterns) {
 
                     let index_constraint_added = [];
 
+                    if (typeof this.word_relationship[word_index] === 'undefined') {
+                        this.word_relationship[word_index] = [];
+                    }
+
                     add_relationship_loop:
                     for (let r = 0; r < this.word_relationship[word_index].length; ++r) {
                         const relationship = this.relationships[this.word_relationship[word_index][r]];

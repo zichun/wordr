@@ -1,24 +1,36 @@
 <html>
   <head>
     <script src="wordlist.js"></script>
-    <script>
-      let word_buckets = {};
-      for (let i = 0; i < WORD_LIST.length; ++i) {
-          const word = WORD_LIST[i];
-          if (typeof word_buckets[word.length] === 'undefined') {
-              word_buckets[word.length] = [];
-          }
-          word_buckets[word.length].push(word);
+    <script src="wordr.js"></script>
+    <style>
+      #words .word {
+          background-color: #89c;
+          padding: 4px;
+          margin: 3px;
       }
-
-      for (a in word_buckets) {
-          console.log(a);
+      #words .word input.char {
+          margin: 3px;
+          height: 45px;
+          width: 45px;
+          line-height: 45px;
+          text-align: center;
+          font-size: 20px;
       }
-      alert(WORD_LIST.length);
-    </script>
+      #words .word .solutions .solution {
+          display: inline-block;
+          margin: 3px;
+          cursor: pointer;
+      }
+      input.char:focus {
+          background-color: #def;
+      }
+    </style>
   </head>
   <body>
+    <button id="add-word">Add word</button>
+    <button id="solve">Solve</button>
+    <button id="link">link</button>
+    <div id="words"></div>
   </body>
+  <script src="wordr.ui.js"></script>
 </html>
-
-
