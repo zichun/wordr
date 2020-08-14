@@ -16,7 +16,9 @@ Wordr.Solver = function(config) {
 
     this.WORDS_BY_LENGTH = parse(config.wordList || ['foo','bar','foobar']);
     this.config = {
-        maxCandidatesPerWord: config.maxCandidatesPerWord || 20
+        maxCandidatesPerWord: config.maxCandidatesPerWord || 20,
+        maxTimeInSeconds: config.maxTimeInSeconds || 30,
+        maxRecurDepth: config.maxRecurDepth || 1000
     };
 
     this.words = [];
@@ -110,6 +112,8 @@ Wordr.Solver.prototype.solve = function(patterns) {
     let templates = [];
     let visited = [];
 
+    const start_time = new Date();
+
     for (let i = 0; i < this.words.length; ++i) {
         candidates.push([]);
         visited.push(false);
@@ -129,8 +133,19 @@ Wordr.Solver.prototype.solve = function(patterns) {
         }
     }
 
-    let recur = (word_index, visit_next) => {
+    let short_circuit = false;
+    let recur = (word_index, visit_next, depth) => {
         const word_base = this.words[word_index];
+
+        if (depth > this.config.maxRecurDepth) {
+            return true;
+        }
+
+        const elapsed_seconds = ((new Date()) - start_time) / 1000;
+        if (short_circuit || elapsed_seconds > this.config.maxTimeInSeconds) {
+            short_circuit = true;
+            return false;
+        }
 
         let viable = false;
         visited[word_index] = true;
@@ -143,6 +158,10 @@ Wordr.Solver.prototype.solve = function(patterns) {
         outerloop:
         for (let i = word_base.min_length(); i <= word_base.max_length(); ++i) {
             for (let j = 0; j < corpus[i].length; ++j) {
+                if (short_circuit) {
+                    return false;
+                }
+
                 const candidate = corpus[i][j];
                 let constraint_satisfied = true;
 
@@ -189,7 +208,7 @@ Wordr.Solver.prototype.solve = function(patterns) {
 
                     if (constraint_satisfied) {
                         if (visit_next.length === 0 ||
-                            (recur(visit_next.pop(), visit_next)))
+                            (recur(visit_next.pop(), visit_next, depth + 1)))
                         {
                             if (candidates[word_index].indexOf(candidate) < 0) {
                                 candidates[word_index].push(candidate);
@@ -217,7 +236,7 @@ Wordr.Solver.prototype.solve = function(patterns) {
 
     for (let i = 0; i < this.words.length; ++i) {
         if (!visited[i]) {
-            recur(i);
+            recur(i, null, 1);
         }
     }
 
