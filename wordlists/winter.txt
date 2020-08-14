@@ -6,7 +6,6 @@ blackice
 blanket
 blizzard
 blustery
-
 boots
 brisk
 radiator
@@ -24,7 +23,6 @@ coat
 cocoon
 cold
 coldsnap
-
 comforter
 overcast
 overcoat

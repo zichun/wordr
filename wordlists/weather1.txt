@@ -20,7 +20,6 @@ fog
 forecast
 freeze
 front
-
 frost
 fujitascale
 funnelcloud
@@ -36,7 +35,6 @@ water
 watercycle
 wave
 weather
-
 weathervane
 whiteout
 wind
@@ -52,7 +50,6 @@ dewpoint
 distrurbance
 downburst
 downdraft
-
 drizzle
 drought
 dry
@@ -63,7 +60,6 @@ climate
 cloud
 cloudy
 condensation
-
 convergence
 cumulus
 cyclone
@@ -73,7 +69,6 @@ thaw
 thermal
 thermometer
 thunder
-
 thunderstorm
 tornado
 tropical
