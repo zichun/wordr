@@ -252,8 +252,8 @@
         const from = link.el_0;
         const to = link.el_1;
 
-        from.links.splice(from.links.indexOf(link_index));
-        to.links.splice(to.links.indexOf(link_index));
+        from.links.splice(from.links.indexOf(link_index), 1);
+        to.links.splice(to.links.indexOf(link_index), 1);
 
         let cur_link_color = link_color;
         link_color = (link_color + 79) % 360;
@@ -262,14 +262,23 @@
             colorize_link(from, cur_link_color);
         }
 
+        if (to.links.length > 0) {
+            colorize_link(to, to.link_color, true);
+        }
+        if (from.links.length > 0) {
+            colorize_link(from, from.link_color, true);
+        }
+
         if (from.links.length === 0) {
             from.link_color = -1;
             from.style.border = '0px';
+            from.parent_link = from;
         }
 
         if (to.links.length === 0) {
             to.link_color = -1;
             to.style.border = '0px';
+            to.parent_link = to;
         }
 
         from.removeAttribute('remove');
@@ -279,9 +288,10 @@
         save_state();
     }
 
-    function colorize_link(el, color) {
+    function colorize_link(el, color, reroot) {
         let visited = {};
         let seen_word = null;
+        const root = el;
 
         function dfs(el) {
             if (typeof visited[el.id] !== 'undefined') {
@@ -293,6 +303,9 @@
             visited[el.id] = true;
             el.link_color = color;
             el.style.border = '3px solid hsl(' + color + ', 80%, 45%)';
+            if (reroot) {
+                el.parent_link = root;
+            }
             for (let i = 0; i < el.links.length; ++i) {
                 if (links[el.links[i]].el_0 !== el) dfs(links[el.links[i]].el_0);
                 if (links[el.links[i]].el_1 !== el) dfs(links[el.links[i]].el_1);
