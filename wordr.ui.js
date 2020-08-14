@@ -27,6 +27,20 @@
         solve();
     });
 
+    document.getElementById('clearboard').addEventListener('click', function() {
+        localStorage.state = null;
+        window.location.reload();
+    });
+
+    document.getElementById('importexport').addEventListener('click', function() {
+        const div = document.getElementById('importexport-div');
+        div.style.display = div.style.display === '' ? 'block' : '';
+    });
+
+    document.getElementById('importexport-button').addEventListener('click', function() {
+        load_state(document.getElementById('importexport-text').value);
+    });
+
     // create_word(5);
     // create_word(8);
 
@@ -39,7 +53,9 @@
     }
 
     function save_state() {
-        localStorage.state = JSON.stringify(get_state());
+        const state = JSON.stringify(get_state());
+        localStorage.state = state;
+        document.getElementById('importexport-text').value = state;
     }
     function load_state(state_str) {
         let state = JSON.parse(state_str);

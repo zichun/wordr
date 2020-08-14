@@ -33,15 +33,31 @@
       input.char:focus {
           background-color: #def;
       }
+
+      #importexport-div {
+          margin: 8px 0 8px 0;
+          display: none;
+      }
+      #importexport-div #importexport-text {
+          width: 500px;
+          height: 300px;
+          display: block;
+          margin: 8px;
+      }
     </style>
   </head>
   <body>
     TODO:
     <li>Solve from particular word</li>
-    <li>Export/Import</li>
     <button id="add-word">Add word</button>
     <button id="solve">Solve</button>
-    <button id="link">link</button>
+    <button id="link">Link Word</button>
+    <button id="clearboard">Clear board</button>
+    <button id="importexport">Import/Export</button>
+    <div id="importexport-div">
+      <textarea id="importexport-text"></textarea>
+      <button id="importexport-button">Reload</button>
+    </div>
     <div id="words"></div>
     <div id="relations"></div>
   </body>
