@@ -1,9 +1,5 @@
-const WORD_LIST = require('./wordlist.js').WORD_LIST;
+const { SCRABBLE_LIST } = require('./wordlists/scrabble.js');
 const Wordr = require('./wordr.js').Wordr;
-
-let solver = new Wordr.Solver({
-    'wordList': WORD_LIST
-});
 
 solver.add_word(Wordr.WordTypes.FixedLengthWord(7));
 solver.add_word(Wordr.WordTypes.FixedLengthWord(3));

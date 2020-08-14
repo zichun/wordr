@@ -1,10 +1,9 @@
-(() => {
+(async () => {
 
     document.getElementById('add-word').addEventListener('click', () => {
         let letters = prompt('Number of letters');
         create_word(parseInt(letters, 10));
     });
-
 
     let words = [];
     let links = [];
@@ -89,7 +88,7 @@
         save_state();
 
         let solver = new Wordr.Solver({
-            'wordList': WORD_LIST,
+            'wordList': SCRABBLE_LIST,
             'maxTimeInSeconds': 8,
             'maxRecurDepth': 6
         });
