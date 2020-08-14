@@ -105,7 +105,7 @@ Wordr.Solver.prototype.add_relation = function(relationship) {
     }
 };
 
-Wordr.Solver.prototype.solve = function(patterns) {
+Wordr.Solver.prototype.solve = function(patterns, solve_from) {
     const corpus = this.WORDS_BY_LENGTH;
     let constraints = [];
     let candidates = [];
@@ -234,9 +234,11 @@ Wordr.Solver.prototype.solve = function(patterns) {
 
     };
 
-    for (let i = 0; i < this.words.length; ++i) {
-        if (!visited[i]) {
-            recur(i, null, 1);
+    solve_from = solve_from || 0;
+    for (let i = solve_from; i < solve_from + this.words.length; ++i) {
+        const ind = i % this.words.length;
+        if (!visited[ind]) {
+            recur(ind, null, 1);
         }
     }
 

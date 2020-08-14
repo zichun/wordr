@@ -24,7 +24,7 @@
     });
 
     document.getElementById('solve').addEventListener('click', function() {
-        solve();
+        solve(0);
     });
 
     document.getElementById('clearboard').addEventListener('click', function() {
@@ -100,7 +100,7 @@
         };
     }
 
-    function solve() {
+    function solve(solve_from_index) {
         save_state();
 
         let solver = new Wordr.Solver({
@@ -138,7 +138,7 @@
             patterns.push(Wordr.make_pattern(pattern));
         }
 
-        let solutions = solver.solve(patterns);
+        let solutions = solver.solve(patterns, solve_from_index);
 
         for (let i = 0; i < words.length; ++i) {
             const el = words[i].el;
@@ -245,6 +245,15 @@
         wordElement.appendChild(solutions);
 
         document.getElementById('words').appendChild(wordElement);
+
+        let solveBtn = document.createElement('button');
+        solveBtn.className = 'solve-button';
+        solveBtn.innerText = 'Solve';
+        solveBtn.addEventListener('click', function() {
+            solve(wordIndex);
+        });
+
+        wordElement.appendChild(solveBtn);
 
         words.push({
             length: letters,

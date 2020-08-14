@@ -8,6 +8,7 @@
           background-color: #89c;
           padding: 4px;
           margin: 3px;
+          position: relative;
       }
       #words .word input.char {
           margin: 3px;
@@ -16,6 +17,11 @@
           line-height: 45px;
           text-align: center;
           font-size: 20px;
+      }
+      #words .word .solve-button {
+          position: absolute;
+          right: 5px;
+          top: 5px;
       }
       #words .word input.char[remove] {
           background-color: #a33;
@@ -47,8 +53,6 @@
     </style>
   </head>
   <body>
-    TODO:
-    <li>Solve from particular word</li>
     <button id="add-word">Add word</button>
     <button id="solve">Solve</button>
     <button id="link">Link Word</button>
