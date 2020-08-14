@@ -1,0 +1,12 @@
+globe
+isobar
+zenith
+meridian
+legend
+longitude
+altitude
+tropics
+compass
+nadir
+isotherm
+parallel
