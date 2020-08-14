@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="scrabble.js"></script>
+    <script src="categories.js"></script>
+    <script src="wordr.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <style>
+      .center {
+        margin: auto;
+        width: 50%;
+        padding: 30px;
+      }
+      .space {
+        height: 70px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body >
+    <div class="center"  id="basic">
+      <h3>Anagram</h1>
+      <div id="anagram">
+        <input type="text" />
+        <button v-on:click="anagramresults = 'some results after anagramming'">Anagram</button>
+        <div>
+          {{ anagramresults }}
+        </div>
+        <div class="space" />
+      </div>
+      <h3>Drop character</h1>
+      <div id="drop">
+        <input type="text" />
+        <button v-on:click="dropresults = 'some results after dropping'">Drop</button>
+        <div>
+          {{ dropresults }}
+        </div>
+        <div class="space" />
+      </div>
+      <h3>Swap character</h1>
+      <div id="swap">
+        <input type="text" />
+        <button v-on:click="swapresults = 'some results after swapping'">Swap</button>
+        <div >
+          {{ swapresults }}
+        </div>
+        <div class="space" />
+      </div>
+      <h3>Equal character, different word length</h1>
+      <div id="equalchar">
+        <input id="matchingfirstword" type="text" />
+        <input id="matchingfirstindex" type="text" placeholder="matching first index"/>
+        <input id="matchingsecondindex" type="text" placeholder="matching second index"/>
+        <input id="matchingsecondlength" type="text" placeholder="second world length"/>
+        <button  v-on:click="solve">Solve</button>
+        <div >
+          {{ equalcharresults }}
+        </div>
+        <div class="space" />
+      </div>
+    </div>
+  </body>
+  <script src="basic.js"></script>
+  </html>
+  
