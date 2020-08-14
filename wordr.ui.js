@@ -5,7 +5,6 @@
         create_word(parseInt(letters, 10));
     });
 
-
     let words = [];
     let links = [];
     let in_link = false;
@@ -89,7 +88,7 @@
         save_state();
 
         let solver = new Wordr.Solver({
-            'wordList': WORD_LIST,
+            'wordList': SCRABBLE_LIST,
             'maxTimeInSeconds': 8,
             'maxRecurDepth': 6
         });

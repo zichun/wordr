@@ -419,6 +419,8 @@ Wordr.make_pattern = function(pattern) {
     return tr;
 };
 
+
+
 if (exports) {
     exports.Wordr = Wordr;
 }
