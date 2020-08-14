@@ -253,7 +253,21 @@
             solve(wordIndex);
         });
 
+        let clearBtn = document.createElement('button');
+        clearBtn.className = 'clear-button';
+        clearBtn.innerText = 'Clear';
+        clearBtn.addEventListener('click', function() {
+            let chars = wordElement.querySelectorAll('.char');
+            for (let i = 0; i < chars.length; ++i)
+            {
+                chars[i].value = '';
+                chars[i].dispatchEvent(new Event('change'));
+            }
+            save_state();
+        });
+
         wordElement.appendChild(solveBtn);
+        wordElement.appendChild(clearBtn);
 
         words.push({
             length: letters,
