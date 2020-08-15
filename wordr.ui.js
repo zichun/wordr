@@ -189,7 +189,7 @@
     }
 
     function create_word(letters, prefill) {
-        if (letters <= 0 || letters > 15 || isNaN(letters)) {
+        if (letters <= 0 || letters > 20 || isNaN(letters)) {
             throw 'Invalid number of letters';
         }
 
