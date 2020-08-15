@@ -38,7 +38,8 @@
     });
 
     document.getElementById('importexport-button').addEventListener('click', function() {
-        load_state(document.getElementById('importexport-text').value);
+        localStorage.state = document.getElementById('importexport-text').value;
+        window.location.reload();
     });
 
     // create_word(5);
@@ -170,7 +171,7 @@
     }
 
     function create_word(letters, prefill) {
-        if (letters <= 0 || letters > 15) {
+        if (letters <= 0 || letters > 15 || isNaN(letters)) {
             throw 'Invalid number of letters';
         }
 
@@ -211,7 +212,7 @@
                     }
 
                     start_link.style.backgroundColor = '';
-                    start_link = null;
+                    start_link = this;
                     in_link = false;
 
                     LinkButton.innerText = 'link';
