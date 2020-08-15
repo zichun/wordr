@@ -36,6 +36,13 @@
           margin: 3px;
           cursor: pointer;
       }
+      #words .word .solutions .solution:hover {
+          text-decoration: underline;
+      }
+      #words .word .solutions .solution.custom {
+          font-weight: bold;
+          color: #722;
+      }
       #relations .removeButton {
           display: block;
           padding: 6px;
@@ -49,9 +56,19 @@
           margin: 8px 0 8px 0;
           display: none;
       }
-      #importexport-div #importexport-text {
+      #customword-div {
+          margin: 8px 0 8px 0;
+          display: none;
+      }
+      #customword-text {
           width: 500px;
-          height: 300px;
+          height: 180px;
+          display: block;
+          margin: 8px;
+      }
+      #importexport-text {
+          width: 500px;
+          height: 180px;
           display: block;
           margin: 8px;
       }
@@ -63,6 +80,10 @@
     <button id="link">Link Word</button>
     <button id="clearboard">Clear board</button>
     <button id="importexport">Import/Export</button>
+    <button id="customword">Custom Words</button>
+    <div id="customword-div">
+      <textarea id="customword-text"></textarea>
+    </div>
     <div id="importexport-div">
       <textarea id="importexport-text"></textarea>
       <button id="importexport-button">Reload</button>

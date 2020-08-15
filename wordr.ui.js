@@ -19,7 +19,8 @@
         start_link.style.backgroundColor = '#fdd';
         in_link = true;
 
-        LinkButton.innerText = 'select element to link to';
+        LinkButton.oldText = LinkButton.innerText;
+        LinkButton.innerText = 'Select element to link to';
         LinkButton.setAttribute('disabled', 'disabled');
     });
 
@@ -34,6 +35,11 @@
 
     document.getElementById('importexport').addEventListener('click', function() {
         const div = document.getElementById('importexport-div');
+        div.style.display = div.style.display === '' ? 'block' : '';
+    });
+
+    document.getElementById('customword').addEventListener('click', function() {
+        const div = document.getElementById('customword-div');
         div.style.display = div.style.display === '' ? 'block' : '';
     });
 
@@ -74,6 +80,8 @@
                         document.getElementById(char_id(link[2], link[3])));
         }
 
+        document.getElementById('customword-text').value = state.customword.join(' ');
+
     }
     function char_id(word_index, index) {
         return 'char-' + word_index + '-' + index;
@@ -97,15 +105,21 @@
         }
         return {
             'words': swords,
-            'links': slinks
+            'links': slinks,
+            'customword': get_custom_words()
         };
     }
 
+    function get_custom_words() {
+        return document.getElementById('customword-text').value.toLowerCase().trim().match(/\S+/g) || [];
+    }
     function solve(solve_from_index) {
         save_state();
 
+        const customword = get_custom_words();
+
         let solver = new Wordr.Solver({
-            'wordList': SCRABBLE_LIST,
+            'wordList': customword.concat(SCRABBLE_LIST),
             'maxTimeInSeconds': 8,
             'maxRecurDepth': 6
         });
@@ -154,6 +168,10 @@
                 solnsEl.appendChild(solnEl);
 
                 solnEl.word_index = i;
+
+                if (customword.indexOf(soln[j]) >= 0) {
+                    solnEl.className += ' custom';
+                }
 
                 solnEl.addEventListener('click', function() {
                     const el = words[this.word_index].el;
@@ -215,7 +233,7 @@
                     start_link = this;
                     in_link = false;
 
-                    LinkButton.innerText = 'link';
+                    LinkButton.innerText = LinkButton.oldText;
                     LinkButton.removeAttribute('disabled');
                 }
             });
