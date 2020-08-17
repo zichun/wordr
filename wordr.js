@@ -99,6 +99,14 @@ Wordr.Solver.prototype.add_relation = function(relationship) {
 
         break;
 
+    case Wordr.RelationTypes.Anagram:
+        assert(relationship.word_0 >= 0 && relationship.word_0 < this.words.length, "Invalid word_0 index");
+        assert(relationship.word_1 >= 0 && relationship.word_1 < this.words.length, "Invalid word_1 index");
+
+        add_word_relationship([relationship.word_0, relationship.word_1], relationship);
+
+        break;
+
     default:
         throw 'Unsupported relationship';
         break;
@@ -170,6 +178,7 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                     constraints[word_index].set_word(candidate);
 
                     let index_constraint_added = [];
+                    let characters_bag_constraint_added = [];
 
                     if (typeof this.word_relationship[word_index] === 'undefined') {
                         this.word_relationship[word_index] = [];
@@ -203,6 +212,20 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                             }
 
                             break;
+
+                        case Wordr.RelationTypes.Anagram:
+
+                            if (!constraints[other_word_index].add_characters_bag_constraint(candidate)) {
+                                constraint_satisfied = false;
+                                break add_relationship_loop;
+                            } else {
+
+                                characters_bag_constraint_added.push(other_word_index);
+                                if (constraints[other_word_index].has_set_word === false && visit_next.indexOf(other_word_index) < 0) {
+                                    visit_next.push(other_word_index);
+                                }
+                            }
+                            break;
                         }
                     }
 
@@ -219,6 +242,10 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
 
                     for (let c = 0; c < index_constraint_added.length; ++c) {
                         constraints[index_constraint_added[c][0]].remove_index_constraint(index_constraint_added[c][1]);
+                    }
+
+                    for (let c = 0; c < characters_bag_constraint_added.length; ++c) {
+                        constraints[characters_bag_constraint_added[c]].remove_characters_bag_constraint();
                     }
 
                     constraints[word_index].unset_word(candidate);
@@ -274,6 +301,12 @@ Wordr.RelationTypes = {
     Anagram: (word_0, word_1) => {
         // Words are anagram of each other. If a word is shorter than the other,
         // then its characters bag will be a subset of that of the longer word.
+
+        return {
+            type: Wordr.RelationTypes.Anagram,
+            word_0: word_0,
+            word_1: word_1
+        };
     },
     CharacterDrop: (word_0, word_1) => {
         // word_1 is a subsequence of word_0, and its length is exactly one smaller than
@@ -293,6 +326,8 @@ Wordr.Constraint = function(min_length, max_length) {
 
     this.known_characters = 0;
     this.first_unknown_index = 0;
+
+    this.character_bags = [];
 
     this.has_set_word = false;
 
@@ -318,7 +353,7 @@ Wordr.Constraint.prototype.set_word = function(word) {
     this.min_length = this.max_length = word.length;
 
     for (let i = 0; i < word.length; ++i) {
-        this.add_index_constraint(i, word[i]);
+        assert(this.add_index_constraint(i, word[i], i < word.length - 1));
     }
 };
 
@@ -334,7 +369,68 @@ Wordr.Constraint.prototype.unset_word = function() {
     this.max_length = this.base_max_length;
 };
 
-Wordr.Constraint.prototype.add_index_constraint = function(index, char) {
+Wordr.contradict_bags = function(bag_0, bag_1) {
+    let big, small;
+    if (bag_0.length > bag_1.length) {
+        big = bag_0;
+        small = bag_1;
+    } else {
+        big = bag_1;
+        small = bag_0;
+    }
+
+    for (let i = 0, j = 0; i < small.length; ++i) {
+        while (small[i] !== big[j] && j < big.length) {
+            ++j;
+        }
+
+        if (j >= big.length) {
+            return true;
+        }
+        ++j;
+    }
+    return false;
+}
+
+Wordr.Constraint.prototype.contradict_characters_bag = function(new_bag) {
+    for (let i = 0; i < this.character_bags.length; ++i) {
+        if (Wordr.contradict_bags(this.character_bags[i], new_bag)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+Wordr.Constraint.prototype.remove_characters_bag_constraint = function() {
+    assert(this.character_bags.length > 0);
+
+    this.character_bags.pop();
+};
+
+Wordr.Constraint.prototype.add_characters_bag_constraint = function(str) {
+    const new_bag = str.split('').sort();
+
+    if (this.contradict_characters_bag(new_bag)) {
+        return false;
+    }
+
+    let template_bag = [];
+    for (let i = 0; i < this.template.length; ++i) {
+        if (this.template[i].count > 0) {
+            template_bag.push(this.template[i].char);
+        }
+    }
+    template_bag.sort();
+
+    if (Wordr.contradict_bags(template_bag, new_bag)) {
+        return false;
+    }
+
+    this.character_bags.push(new_bag);
+    return true;
+};
+
+Wordr.Constraint.prototype.add_index_constraint = function(index, char, skip_character_bag_check) {
     //
     // Adds an index constraint, which specifies that the character at the given index
     // of the word must match the given character. Returns true if constraint can be added
@@ -348,7 +444,26 @@ Wordr.Constraint.prototype.add_index_constraint = function(index, char) {
         if (this.template[index].char !== char) {
             return false;
         }
-    } else {
+    }
+
+    if (!skip_character_bag_check) {
+        let template_bag = [];
+        for (let i = 0; i < this.template.length; ++i) {
+            if (this.template[i].count > 0) {
+                template_bag.push(this.template[i].char);
+            }
+        }
+        if (this.template[index].count === 0) {
+            template_bag.push(char);
+        }
+        template_bag.sort();
+
+        if (this.contradict_characters_bag(template_bag)) {
+            return false;
+        }
+    }
+
+    if (this.template[index].count === 0) {
         this.known_characters += 1;
         while (this.template[this.first_unknown_index].count > 0) {
             this.first_unknown_index++;
@@ -381,6 +496,12 @@ Wordr.Constraint.prototype.satisfied = function(candidate) {
     // Validates if the given candidate string fulfills all constraints.
     //
     if (candidate.length < this.min_length || candidate.length > this.max_length) {
+        return false;
+    }
+
+    const new_bag = candidate.split('').sort();
+
+    if (this.contradict_characters_bag(new_bag)) {
         return false;
     }
 
