@@ -235573,7 +235573,6 @@ const SCRABBLE_LIST = [
 "annalizing",
 "nemns",
 "waterquakes",
-"reprehendable",
 "torpefying",
 "spritefully",
 "projectments",
@@ -235592,4 +235591,4 @@ const SCRABBLE_LIST = [
 "khamseens",
 "gadges",
 ]
-if (exports) { exports.SCRABBLE_LIST = SCRABBLE_LIST;}
+if (typeof exports !== 'undefined') { exports.SCRABBLE_LIST = SCRABBLE_LIST;}

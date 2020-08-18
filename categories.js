@@ -10743,7 +10743,7 @@ const SPRING_LIST = [
   "umbrella",
 ]
 
-if (exports) { 
+if (typeof exports !== 'undefined') { 
   exports.BIRD_LIST = BIRD_LIST;
   exports.HOUSERELATED_LIST = HOUSERELATED_LIST;
   exports.LANDFORMS_LIST = LANDFORMS_LIST;

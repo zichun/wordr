@@ -660,7 +660,7 @@ Wordr.make_pattern = function(pattern) {
 
 
 
-if (exports) {
+if (typeof exports !== 'undefined') {
     exports.Wordr = Wordr;
 }
 
