@@ -1,5 +1,6 @@
 let Wordr = {};
 let DEBUG = false;
+
 Wordr.Solver = function(config) {
 
     function parse(wordList) {
@@ -18,7 +19,8 @@ Wordr.Solver = function(config) {
     this.config = {
         maxCandidatesPerWord: config.maxCandidatesPerWord || 20,
         maxTimeInSeconds: config.maxTimeInSeconds || 30,
-        maxRecurDepth: config.maxRecurDepth || 1000
+        maxRecurDepth: config.maxRecurDepth || 1000,
+        uniqueWords: config.uniqueWords || true
     };
 
     this.words = [];
@@ -107,10 +109,25 @@ Wordr.Solver.prototype.add_relation = function(relationship) {
 
         break;
 
+    case Wordr.RelationTypes.CharacterSwap:
+        assert(relationship.word_0 >= 0 && relationship.word_0 < this.words.length, "Invalid word_0 index");
+        assert(relationship.word_1 >= 0 && relationship.word_1 < this.words.length, "Invalid word_1 index");
+        if (this.words[relationship.word_0].min_length() != this.words[relationship.word_1].min_length() ||
+            this.words[relationship.word_0].max_length() != this.words[relationship.word_1].max_length()) {
+            console.log("words length differ");
+            return false;
+        }
+
+        add_word_relationship([relationship.word_0, relationship.word_1], relationship);
+
+        break;
+
     default:
         throw 'Unsupported relationship';
         break;
     }
+
+    return true;
 };
 
 Wordr.Solver.prototype.solve = function(patterns, solve_from) {
@@ -142,6 +159,8 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
     }
 
     let short_circuit = false;
+    let candidates_so_far = [];
+
     let recur = (word_index, visit_next, depth) => {
         const word_base = this.words[word_index];
 
@@ -161,6 +180,7 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
         if (!visit_next) {
             visit_next = [];
         }
+        let my_visit_next = visit_next.concat([]);
         // TODO: possible optimization when constraint has a fully formed word
 
         outerloop:
@@ -171,19 +191,31 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                 }
 
                 const candidate = corpus[i][j];
+                if (this.config.uniqueWords) {
+                    if (candidates_so_far.indexOf(candidate) >= 0) {
+                        continue;
+                    }
+                }
+
                 let constraint_satisfied = true;
 
                 if (constraints[word_index].satisfied(candidate)) {
 
                     constraints[word_index].set_word(candidate);
+                    candidates_so_far.push(candidate);
 
                     let index_constraint_added = [];
                     let characters_bag_constraint_added = [];
+                    let characterswap_constraint_added = [];
 
                     if (typeof this.word_relationship[word_index] === 'undefined') {
                         this.word_relationship[word_index] = [];
                     }
 
+                    //
+                    // future cleanup: relations should be expressed as a constraint modifier directly, and the
+                    // actual semantics of relationships should be encapsulated away from solve.
+                    //
                     add_relationship_loop:
                     for (let r = 0; r < this.word_relationship[word_index].length; ++r) {
                         const relationship = this.relationships[this.word_relationship[word_index][r]];
@@ -206,8 +238,8 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                             } else {
                                 index_constraint_added.push([other_word_index, that_pos]);
 
-                                if (constraints[other_word_index].has_set_word === false && visit_next.indexOf(other_word_index) < 0) {
-                                    visit_next.push(other_word_index);
+                                if (constraints[other_word_index].has_set_word === false && my_visit_next.indexOf(other_word_index) < 0) {
+                                    my_visit_next.push(other_word_index);
                                 }
                             }
 
@@ -221,8 +253,22 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                             } else {
 
                                 characters_bag_constraint_added.push(other_word_index);
-                                if (constraints[other_word_index].has_set_word === false && visit_next.indexOf(other_word_index) < 0) {
-                                    visit_next.push(other_word_index);
+                                if (constraints[other_word_index].has_set_word === false && my_visit_next.indexOf(other_word_index) < 0) {
+                                    my_visit_next.push(other_word_index);
+                                }
+                            }
+                            break;
+
+                        case Wordr.RelationTypes.CharacterSwap:
+
+                            if (!constraints[other_word_index].add_characterswap_constraint(candidate)) {
+                                constraint_satisfied = false;
+                                break add_relationship_loop;
+                            } else {
+                                characterswap_constraint_added.push(other_word_index);
+
+                                if (constraints[other_word_index].has_set_word === false && my_visit_next.indexOf(other_word_index) < 0) {
+                                    my_visit_next.push(other_word_index);
                                 }
                             }
                             break;
@@ -230,9 +276,10 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                     }
 
                     if (constraint_satisfied) {
-                        if (visit_next.length === 0 ||
-                            (recur(visit_next.pop(), visit_next, depth + 1)))
+                        if (my_visit_next.length === 0 ||
+                            (recur(my_visit_next[0], my_visit_next.slice(1), depth + 1)))
                         {
+
                             if (candidates[word_index].indexOf(candidate) < 0) {
                                 candidates[word_index].push(candidate);
                             }
@@ -248,7 +295,12 @@ Wordr.Solver.prototype.solve = function(patterns, solve_from) {
                         constraints[characters_bag_constraint_added[c]].remove_characters_bag_constraint();
                     }
 
+                    for (let c = 0; c < characterswap_constraint_added.length; ++c) {
+                        constraints[characterswap_constraint_added[c]].remove_characterswap_constraint();
+                    }
+
                     constraints[word_index].unset_word(candidate);
+                    candidates_so_far.pop();
                 }
 
                 if (viable && candidates[word_index].length > this.config.maxCandidatesPerWord) {
@@ -314,6 +366,12 @@ Wordr.RelationTypes = {
     },
     CharacterSwap: (word_0, word_1) => {
         // word_0 and word_1 are of the same length, and differ by exactly one character
+
+        return {
+            type: Wordr.RelationTypes.CharacterSwap,
+            word_0: word_0,
+            word_1: word_1
+        };
     }
 };
 
@@ -328,6 +386,7 @@ Wordr.Constraint = function(min_length, max_length) {
     this.first_unknown_index = 0;
 
     this.character_bags = [];
+    this.characterswap = [];
 
     this.has_set_word = false;
 
@@ -399,6 +458,44 @@ Wordr.Constraint.prototype.contradict_characters_bag = function(new_bag) {
         }
     }
     return false;
+};
+
+Wordr.Constraint.prototype.add_characterswap_constraint = function(str) {
+    let diff = 0;
+    for (let i = 0; i < this.template.length && i < str.length; ++i) {
+        if (this.template[i].count > 0) {
+            if (str[i] !== this.template[i].char) {
+                ++diff;
+
+                if (diff > 1) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    for (let i = 0; i < this.characterswap.length; ++i) {
+        if (str.length !== this.characterswap[i].length) {
+            return false;
+        }
+        let diff = 0;
+        for (let j = 0; j < str.length; ++j) {
+            if (str[j] !== this.characterswap[i][j]) {
+                ++diff;
+                if (diff > 2) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    this.characterswap.push(str);
+    return true;
+};
+
+Wordr.Constraint.prototype.remove_characterswap_constraint = function() {
+    assert(this.characterswap.length > 0);
+    this.characterswap.pop();
 };
 
 Wordr.Constraint.prototype.remove_characters_bag_constraint = function() {
@@ -505,8 +602,27 @@ Wordr.Constraint.prototype.satisfied = function(candidate) {
         return false;
     }
 
+    for (let i = 0; i < this.characterswap.length; ++i) {
+        let found_diff = false;
+        if (candidate.length !== this.characterswap[i].length) {
+            return false;
+        }
+        for (let j = 0; j < candidate.length; ++j) {
+            if (candidate[j] !== this.characterswap[i][j]) {
+                if (found_diff) {
+                    return false;
+                }
+                found_diff = true;
+            }
+        }
+
+        if (found_diff === false) {
+            return false;
+        }
+    }
+
     for (let i = 0; i < candidate.length; ++i) {
-        if (this.template[i].count > 0 && this.template[i].char != candidate[i]) {
+        if (this.template[i].count > 0 && this.template[i].char !== candidate[i]) {
             return false;
         }
     }

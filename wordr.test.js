@@ -1,35 +1,74 @@
 const { SCRABBLE_LIST } = require('./scrabble.js');
 const Wordr = require('./wordr.js').Wordr;
 
-let solver = new Wordr.Solver({
-    'wordList': SCRABBLE_LIST
-});
+function assert(cond, message) {
+    if (!cond) {
+        throw new Error(message);
+    }
+}
 
-solver.add_word(Wordr.WordTypes.FixedLengthWord(7));
-solver.add_word(Wordr.WordTypes.FixedLengthWord(6));
-solver.add_word(Wordr.WordTypes.FixedLengthWord(5));
-solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+function manualtest_anagram() {
+    let solver = new Wordr.Solver({
+        'wordList': SCRABBLE_LIST
+    });
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(7));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(6));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(5));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
 
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 2, 0, 3)); 
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 2, 1, 0));// word[0][2] === word[1][0]. if we know word[0] === 'apple', then we know word[1]== 'p????'
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 2, 2, 4));
-// solver.add_relation(Wordr.RelationTypes.EqualChar(1, 2, 2, 5));
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 6, 3, 2));
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 1, 3, 3));
-// solver.add_relation(Wordr.RelationTypes.EqualChar(0, 1, 1, 1));
+    solver.add_relation(Wordr.RelationTypes.Anagram(0, 1));
+    solver.add_relation(Wordr.RelationTypes.Anagram(1, 2));
+    solver.add_relation(Wordr.RelationTypes.Anagram(2, 3));
 
-solver.add_relation(Wordr.RelationTypes.Anagram(0, 1));
-solver.add_relation(Wordr.RelationTypes.Anagram(1, 2));
-solver.add_relation(Wordr.RelationTypes.Anagram(2, 3));
+    let solutions = solver.solve([null, null, Wordr.make_pattern('delta'), null], 2);
+    console.log(solutions);
+}
 
-// let solutions = solver.solve([
-//     Wordr.make_pattern('??rrin?'),
-//     Wordr.make_pattern('???'),
-//     Wordr.make_pattern('l????d'),
-//     Wordr.make_pattern('p?????')
-// ]);
+function manualtest_characterswap() {
+    let solver = new Wordr.Solver({
+        'wordList': ['dorm','firm','hate','fore','port','film','form','hare','pore','fare']
+    });
 
-//let solutions = solver.solve([Wordr.make_pattern('insect')]);
-let solutions = solver.solve([null, null, Wordr.make_pattern('delta'), null], 2);
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
+    solver.add_word(Wordr.WordTypes.FixedLengthWord(4));
 
-console.log(solutions);
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(0, 1));
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(1, 2));
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(2, 3));
+
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(4, 2));
+
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(5, 6));
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(3, 6));
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(3, 7));
+
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(8, 9));
+    solver.add_relation(Wordr.RelationTypes.CharacterSwap(9, 7));
+
+    let solutions = solver.solve([]);
+
+    assert(solutions.length === 10);
+    for (let i = 0; i < solutions.length; ++i) {
+        assert(solutions[i].length === 1);
+    }
+    assert(solutions[0][0] === 'film');
+    assert(solutions[1][0] === 'firm');
+    assert(solutions[2][0] === 'form');
+    assert(solutions[3][0] === 'fore');
+    assert(solutions[4][0] === 'dorm');
+    assert(solutions[5][0] === 'port');
+    assert(solutions[6][0] === 'pore');
+    assert(solutions[7][0] === 'fare');
+    assert(solutions[8][0] === 'hate');
+    assert(solutions[9][0] === 'hare');
+}
+
+manualtest_characterswap();

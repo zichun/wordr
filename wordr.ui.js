@@ -121,7 +121,7 @@
         let solver = new Wordr.Solver({
             'wordList': customword.concat(SCRABBLE_LIST),
             'maxTimeInSeconds': 8,
-            'maxRecurDepth': 6
+            'maxRecurDepth': 5
         });
         for (let i = 0; i < words.length; ++i) {
             solver.add_word(Wordr.WordTypes.FixedLengthWord(words[i].length));
